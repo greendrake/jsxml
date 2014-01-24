@@ -389,7 +389,7 @@
 			}
 			if('loadXML' in o){
 				o.loadXML(str);
-				if (!o.documentElement || (xmlDoc.parseError && o.parseError.errorCode != 0)) {
+				if (!o.documentElement || (o.parseError && o.parseError.errorCode != 0)) {
 					e={
 						message : (o.parseError.reason +"\r\n"+ o.parseError.linepos)
 						,userMsg : this.lng.broken
