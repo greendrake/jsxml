@@ -38,32 +38,32 @@
  * Demo:<ul>
  * <li/> Loading an XML string into DOM and converting DOM back to XML string
  * @example <pre>
- *   var dom = jsxml.fromString('<?xml version="1.0" encoding="UTF-8"?><root/>'),
+ *   var dom = JSXML.fromString('<?xml version="1.0" encoding="UTF-8"?><root/>'),
  *   child = dom.createElement('child');
  *   child.setAttribute('foo', 'bar');
  *   dom.documentElement.appendChild(child);
- *   alert(jsxml.toXml(dom));
+ *   alert(JSXML.toXml(dom));
  * </pre>
  *
  * <li/> Loading anything into DOM and doing something with it
  * @example <pre>
- *   jsxml.fromFile('xml.xml', function(dom){
+ *   JSXML.fromFile('xml.xml', function(dom){
  *   	var child = dom.createElement('child');
  *   	child.setAttribute('foo', 'bar');
  *   	dom.documentElement.appendChild(child);
- *   	alert(jsxml.toXml(dom));
+ *   	alert(JSXML.toXml(dom));
  *   });
  *   // OR
- *   jsxml.load(source, function(dom){
+ *   JSXML.load(source, function(dom){
  *   	// doing something here
  *   });
  * </pre>
  *
  * <li/> Transforming an XML with an XSLT
  * @example <pre>
- *   var resultString = jsxml.transReady(xml, xsl);
+ *   var resultString = JSXML.transReady(xml, xsl);
  *   // OR
- *   jsxml.trans(xmlSource, xslSource, function(resultString){
+ *   JSXML.trans(xmlSource, xslSource, function(resultString){
  *   	// doing something here
  *   });
  * </pre>
@@ -106,7 +106,7 @@
 		}); else if (typeof(this.cb) == 'function') this.cb();
 	};
 
-	// -----[ PRIVATE functions ]-----
+	// -----[ PROTECTED functions ]-----
 	function _isA(v){
 		return v && typeof v.length == "number" && typeof v.splice == "function";
 	}
@@ -270,7 +270,7 @@
 
 		/**
 		 * создает XML-документ
-		 * @param node
+		 * @param [node]
 		 * @returns {XMLDocument}
 		 */
 		newDoc: function(node){
@@ -304,10 +304,12 @@
 			var d=null;
 			// create IE xml DOM without ActiveX, submitted by alfalabs.net@gmail.com
 			try{
-				if(ActiveXObject instanceof Object){
+				if(typeof(ActiveXObject)!='undefined' && ActiveXObject instanceof Object){
 					d = _createActiveXObject();
-					d.async = false;
-					while(d.readyState != 4) {}
+					if(d){
+						d.async = false;
+						while(d.readyState != 4) {}
+					}else d= _createElement();
 				}else{
 					d= _createElement();
 				}
@@ -325,6 +327,7 @@
 			if(!d){
 				try {
 					d = new DOMParser();
+					//d = d.parseFromString('','text/xml');
 					// text/xml
 					// application/xml
 					// application/xhtml+xml
@@ -338,7 +341,7 @@
 
 			if(node){
 				try{
-					if (ActiveXObject instanceof Object) {
+					if (typeof(ActiveXObject)!='undefined' && ActiveXObject instanceof Object) {
 						if (node.tagName) {
 							d.appendChild(this.importNode(d, node, true));
 						} else {
@@ -352,9 +355,14 @@
 				}catch(e){ ERROR.show(e) }
 			}
 			return d;
-		},
+		}
 
-		copy: function(obj){
+		/**
+		 * клонирует XML
+		 * @param obj
+		 * @returns {XMLDocument}
+		 */
+		,copy: function(obj){
 			return this.fromString(this.stringify(obj));
 		},
 
@@ -367,22 +375,32 @@
 		 */
 		fromStringOrObject: function(src) {
 			return this.fromObject(src) || this.fromString(src);
-		},
+		}
 		/**
 		 * создает XMLDocument из строки
 		 * @param {String} str строка содержащая тело XML
 		 * @param {Boolean} [checkXmlDeclaration=true] проверять Xml декларацию?
+		 * @param {String} [type='text/xml'] тип документа <ul>
+		 *   <li/>text/xml
+		 *   <li/>application/xml
+		 *   <li/>application/xhtml+xml
+		 *   <li/>image/svg+xml
+		 * </ul>
 		 * @method fromString
 		 * @member JSXML
 		 * @returns {XMLDocument}
 		 */
-		fromString: function(str, checkXmlDeclaration) {
+		,fromString: function(str, checkXmlDeclaration,type) {
 			//TODO: добавить создание всего xml в теле как в newDoc <test> по _createElement()
+			type = type || 'text/xml';
 			if (typeof(str) != 'string') return null;
 			checkXmlDeclaration = (checkXmlDeclaration !== false);
 			var o = null;
 			if (checkXmlDeclaration && !/^<\?xml/.test(str)) return null;
-			var o = this.newDoc();
+			if(window.DOMParser){
+				o = new DOMParser();
+			}else
+				o = this.newDoc();
 			if(!o){
 				_throw(this.lng.broken);
 				return null
@@ -402,8 +420,8 @@
 				}
 			}else if('load' in o){
 				o.load(str);
-			}else if( o instanceof DOMParser && 'parseFromString' in o){
-				o = parser.parseFromString(str, 'text/xml');
+			}else if( o instanceof DOMParser && 'parseFromString' in o && typeof str == 'string'){
+				o = o.parseFromString(str, type);
 				var e = (o.getElementsByTagName('parsererror') || o.documentElement.tagName=="parsererror");
 				if (e.length > 0) {
 					_throw(this.lng.broken +"\r\n"+ o.documentElement.textContent);
@@ -455,7 +473,7 @@
 					url: file,
 					success: function(xml){
 						if (!xml.documentElement) {
-							$_throw($this.lng.brokenfile + ': ' + file);
+							_throw($this.lng.brokenfile + ': ' + file);
 							return;
 						}
 						c[file] = xml;
@@ -470,8 +488,8 @@
 							m.push($this.lng.exception + ":\r\n" + file);
 							if (e.name) m.push(e.name);
 							if (e.message) m.push(e.message);
-							$_throw(m.join("\r\n"));
-						} else $_throw($this.lng.brokenfile + ': ' + file);
+							_throw(m.join("\r\n"));
+						} else _throw($this.lng.brokenfile + ': ' + file);
 					}
 				})
 			}
@@ -480,7 +498,7 @@
 		/**
 		 * загрузка XML с сервера или из переданной строки или из переданного XMLDocument
 		 * @method load
-		 * @param {String} строка XML или XMLDocument (XML-object) или URL-адрес откуда подгружать XML
+		 * @param {String} source строка XML или XMLDocument (XML-object) или URL-адрес откуда подгружать XML
 		 * @param {Function} callback
 		 * @param [scope]
 		 * @member JSXML
@@ -507,9 +525,19 @@
 			if (xmlHeaderNeeded && !xmlHeaderPresent) return this._xmlHeader + xml;
 			if (!xmlHeaderNeeded && xmlHeaderPresent) return xml.replace(/^<\?xml[^<]+/, '');
 			return xml;
-		},
+		}
 
-		toDom: function(o, names, parentNode){
+		,toXml: function(source, xmlHeaderNeeded){
+			xmlHeaderNeeded = !(xmlHeaderNeeded === false);
+			var xml = typeof(source) == 'string' ? source : (source.xml ? source.xml : new XMLSerializer().serializeToString(source)),
+					xmlHeaderPresent = /^<\?xml/.test(xml);
+			if (xmlHeaderNeeded && /\="UTF\-16"\?/.test(xml)) xml = xml.replace(/\=\"UTF\-16\"\?/, '="UTF-8"?');
+			if (xmlHeaderNeeded && !xmlHeaderPresent) return this._xmlHeader + xml;
+			if (!xmlHeaderNeeded && xmlHeaderPresent) return xml.replace(/^<\?xml[^<]+/, '');
+			return xml;
+		}
+
+		,toDom: function(o, names, parentNode){
 			var rootName = _borrowRootName(names);
 			if (parentNode) parentNode = parentNode.appendChild(parentNode.ownerDocument.createElement(rootName));
 			else parentNode = this.newDoc(rootName).documentElement;
@@ -575,8 +603,8 @@
 
 		getXslWrap: function(cfg){
 			cfg = cfg || {};
-			cfg.indent = cfg.indent ? cfg.indent : 'yes';
-			cfg.method = cfg.method ? cfg.method : 'html';
+			cfg.indent = cfg.indent || 'yes';
+			cfg.method = cfg.method || 'html';
 			return ['<?xml version="1.0" encoding="UTF-8"?><xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"><xsl:output encoding="UTF-8" indent="' + cfg.indent + '" method="' + cfg.method + '" />', '</xsl:stylesheet>'];
 		},
 
@@ -625,7 +653,7 @@
 		 * @static
 		 * @member JSXML
 		 */
-		,version : '0.3.0'
+		,version : '0.3.2'
 		/**
 		 * @static
 		 * @member JSXML
@@ -634,7 +662,7 @@
 		,versionDetail : {
 			major : 0
 			,minor : 3
-			,patch : 0
+			,patch : 2
 		}
 	};
 

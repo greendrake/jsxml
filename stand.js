@@ -198,3 +198,37 @@ ERROR = new function(){
   
   return this;
 };
+
+/**
+ * Returns true if the passed value is a JavaScript array, otherwise false.
+ * @param v The value to test
+ * @return {Boolean}
+ */
+function isArray(v){
+	return (Array.isArray
+			? Array.isArray(v)
+			: Object.prototype.toString.apply(v) === '[object Array]');
+}
+/**
+ * Returns true if the passed value is a JavaScript Object, otherwise false.
+ * @param {Mixed} v The value to test
+ * @return {Boolean}
+ */
+function isObject(v){
+	return !!v && Object.prototype.toString.call(v) === '[object Object]';
+}
+
+function clone(d,s,lvl){
+	for(var i in s){
+		if(!s.hasOwnProperty(i)) continue;
+		var sO= isArray(s[i])? [] : isObject(s[i])? {} : undefined;
+		if(sO && lvl!=0){
+			if(isArray(d)) d.push(clone(sO, s[i],lvl-1))
+			else if(isObject(d)) d[i] = clone(sO,s[i],lvl-1);
+		}else{
+			if(isArray(d)) d.push(s[i])
+			else d[i] = s[i];
+		}
+	}
+	return d
+}
