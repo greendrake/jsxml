@@ -42,7 +42,7 @@
  *   child = dom.createElement('child');
  *   child.setAttribute('foo', 'bar');
  *   dom.documentElement.appendChild(child);
- *   alert(JSXML.toXml(dom));
+ *   alert(JSXML.stringify(dom));
  * </pre>
  *
  * <li/> Loading anything into DOM and doing something with it
@@ -51,7 +51,7 @@
  *   	var child = dom.createElement('child');
  *   	child.setAttribute('foo', 'bar');
  *   	dom.documentElement.appendChild(child);
- *   	alert(JSXML.toXml(dom));
+ *   	alert(JSXML.stringify(dom));
  *   });
  *   // OR
  *   JSXML.load(source, function(dom){
@@ -518,20 +518,10 @@
 		 * @returns {*}
 		 */
 		stringify: function(source, xmlHeaderNeeded){
-			xmlHeaderNeeded = (xmlHeaderNeeded !== false);
-			var xml = typeof(source) == 'string' ? source : (source.xml ? source.xml : new XMLSerializer().serializeToString(source)),
-					xmlHeaderPresent = /^<\?xml/.test(xml);
-			if (xmlHeaderNeeded && /="UTF\-16"\?/.test(xml)) xml = xml.replace(/="UTF\-16"\?/, '="UTF-8"?');
-			if (xmlHeaderNeeded && !xmlHeaderPresent) return this._xmlHeader + xml;
-			if (!xmlHeaderNeeded && xmlHeaderPresent) return xml.replace(/^<\?xml[^<]+/, '');
-			return xml;
-		}
-
-		,toXml: function(source, xmlHeaderNeeded){
 			xmlHeaderNeeded = !(xmlHeaderNeeded === false);
 			var xml = typeof(source) == 'string' ? source : (source.xml ? source.xml : new XMLSerializer().serializeToString(source)),
 					xmlHeaderPresent = /^<\?xml/.test(xml);
-			if (xmlHeaderNeeded && /\="UTF\-16"\?/.test(xml)) xml = xml.replace(/\=\"UTF\-16\"\?/, '="UTF-8"?');
+			if (xmlHeaderNeeded && /="UTF\-16"\?/.test(xml)) xml = xml.replace(/="UTF\-16"\?/, '="UTF-8"?');
 			if (xmlHeaderNeeded && !xmlHeaderPresent) return this._xmlHeader + xml;
 			if (!xmlHeaderNeeded && xmlHeaderPresent) return xml.replace(/^<\?xml[^<]+/, '');
 			return xml;
@@ -619,6 +609,7 @@
 			}, this);
 		},
 
+		//TODO: добавить задание/смены кодировки XML
 		_xmlHeader: '<?xml version="1.0" encoding="UTF-8"?>\r\n',
 		_cache: {},
 		_copy: function(o){
