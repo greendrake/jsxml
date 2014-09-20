@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+﻿<!DOCTYPE HTML>
 <html>
 <head>
 	<meta content="text/html" charset="UTF-8">
@@ -24,16 +24,22 @@
         <script type="text/javascript" language="JavaScript" src="jsxml.js"></script>
         <script type="text/javascript" language="JavaScript">
           function run(){
+						var xml = '<?xml version="1.0" encoding="UTF-8"?><root/>',
+						    xsl = '<?xml version="1.0" encoding="UTF-8"?><xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"><xsl:output encoding="UTF-8" indent="yes" method="html"/><xsl:template match="/root"><div/></xsl:template></xsl:stylesheet>';
+						
 						var dom = JSXML.fromString('<?xml version="1.0" encoding="UTF-8"?><root/>'),
 								child = dom.createElement('child');
 
 						child.setAttribute('foo' ,'bar')
 						dom.documentElement.appendChild(child)
-						alert(JSXML.toXml(dom))
+						alert(JSXML.stringify(dom))
 
 						JSXML.load('xml.xml' ,function(dom){
-							alert(JSXML.toXml(dom))
+							alert(JSXML.stringify(dom))
 						});
+						
+						var resultString = JSXML.transReady(xml, xsl);
+						alert(resultString)
 					}
         </script>
     </head>

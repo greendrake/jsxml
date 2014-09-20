@@ -1,7 +1,8 @@
 /*
  JSXML
   start 0.2.2 (2012-07-18)
- {@link http://JSXML.net/ }
+ {@link http://JSXML.net/ orginal project}
+ {@link http://ittown.info/jsxml/#!/api/JSXML DOCumentation}
 
  JavaScript XML/XSLT Library
 
@@ -32,59 +33,87 @@
  */
 
 /**
- * для работы с XML,XSLT + трансформация в результирующий DOM
+ * для работы с XML,XSLT + трансформация в результирующий DOM<br/>
+ * JavaScript XML/XSLT library. [Original project](http://jsxml.net/)<br/>
  * @class JSXML
  * @singleton
- * Demo:<ul>
- * <li/> Loading an XML string into DOM and converting DOM back to XML string
- * @example <pre>
- *   var dom = JSXML.fromString('<?xml version="1.0" encoding="UTF-8"?><root/>'),
- *   child = dom.createElement('child');
- *   child.setAttribute('foo', 'bar');
- *   dom.documentElement.appendChild(child);
- *   alert(JSXML.stringify(dom));
- * </pre>
+ * **Feedback**<br/> Any comments, bug reports, suggestions — please welcome: [author](mailto:eugene@greendrake.info?subject=JSXML), [editor](mailto:cybermerlin@ya.ru?subject=JSXML).
+ * <br/>Demo:<br/>
  *
- * <li/> Loading anything into DOM and doing something with it
- * @example <pre>
- *   JSXML.fromFile('xml.xml', function(dom){
- *   	var child = dom.createElement('child');
- *   	child.setAttribute('foo', 'bar');
- *   	dom.documentElement.appendChild(child);
- *   	alert(JSXML.stringify(dom));
- *   });
- *   // OR
- *   JSXML.load(source, function(dom){
- *   	// doing something here
- *   });
- * </pre>
+ *    @example <code><pre>
+ *    var xml = '&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;root/&gt;';
+ *    var xsl = '&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; version=&quot;1.0&quot;&gt;
+ *                		&lt;xsl:output encoding=&quot;UTF-8&quot; indent=&quot;yes&quot; method=&quot;html&quot;/&gt;
+ *                		&lt;xsl:template match=&quot;/root&quot;&gt;
+ *                				&lt;div/&gt;
+ *                		&lt;/xsl:template&gt;
+ *                &lt;/xsl:stylesheet&gt;';
+ *    </pre></code>
+ * <ul>
+ * <li> Loading an XML string into DOM and converting DOM back to XML string<br/>
  *
- * <li/> Transforming an XML with an XSLT
- * @example <pre>
- *   var resultString = JSXML.transReady(xml, xsl);
- *   // OR
- *   JSXML.trans(xmlSource, xslSource, function(resultString){
- *   	// doing something here
- *   });
- * </pre>
+ *    @example <code><pre>
+ *    var dom = JSXML.fromString(xml),
+ *        child = dom.createElement('child');
+ *    child.setAttribute('foo', 'bar');
+ *    dom.documentElement.appendChild(child);
+ *    alert(JSXML.stringify(dom));
+ *    </pre></code>
+ *
+ * </li>
+ *
+ * <li> Loading anything into DOM and doing something with it<br/>
+ *
+ *    @example <code><pre>
+ *    JSXML.fromFile('xml.xml', function(dom){
+ *        var child = dom.createElement('child');
+ *        child.setAttribute('foo', 'bar');
+ *        dom.documentElement.appendChild(child);
+ *        alert(JSXML.stringify(dom));
+ *    });
+ *    // OR
+ *    JSXML.load(source, function(dom){
+ *        // doing something here
+ *    });
+ *    </pre></code>
+ *
+ * </li>
+ *
+ * <li> Transforming an XML with an XSLT<br/>
+ *
+ *    @example <code><pre>
+ *    var resultString = JSXML.transReady(xml, xsl);
+ *    // OR
+ *    JSXML.trans(xmlSource, xslSource, function(resultString){
+ *        // doing something here
+ *    });
+ *    </pre></code>
+ *
+ * </li>
  * </ul>
  *
  * @cfg {Object} [context=window] The host object to hold the JSXML object;
  * @cfg {String} [name='JSXML'] Key to access the JSXML object;
  * @cfg {Boolean} [file_cache=true] — whether to cache DOM objects from retrieved XML files and use them next time the same file is called;
- * @cfg {'alert'|'throw'} [errors='alert'] How to behave in case an error occurred (broken XML, invalid XSLT etc.).
+ * @cfg {'alert'|'throw'|'ignore'} [errors='alert'] How to behave in case an error occurred (broken XML, invalid XSLT etc.). <ul>
+ *   <li/><b>alert</b> alert the user
+ *   <li/><b>throw</b> excetion
+ *   <li/><b>ignore</b> silent
+ * </ul>
+ * @cfg {String} [encoding='UTF-8'] кодировка для XML
  */
 (function(cfg){
 	var defaults = {
 		context: window,
 		name: 'JSXML',
 		file_cache: true,
-		errors: 'alert' // throw, ignore
+		errors: 'alert', // throw, ignore
+		encoding: 'UTF-8'
 	};
 	if (!cfg) cfg = {};
 	for (var i in defaults)
-		if (cfg[i]) defaults[i] = cfg[i];
-	cfg = defaults;
+		cfg[i] = (cfg[i] || defaults[i]);
+
 
 	// conveyor is used to build and execute callback chains
 	var conveyor = function(cb){
@@ -106,49 +135,75 @@
 		}); else if (typeof(this.cb) == 'function') this.cb();
 	};
 
-	// -----[ PROTECTED functions ]-----
-	function _isA(v){
-		return v && typeof v.length == "number" && typeof v.splice == "function";
-	}
+
+	//region PROTECTED functions n properties
 	/**
-	 * выводит сообщение об ошибке или создает исключение
-	 * @param {String} msg
-	 * @param {Error} e
+	 * Exception handler
+	 * @param {String} msg message
+	 * @param {Error} e Error object
 	 * @private
 	 */
 	function _throw(msg,e){
-		var sourceAppName = 'JSXML';
 		if(!e){
-			e={
+			e = {
 				message: msg
 				,file:'jsxml.js'
-				,'function':sourceAppName
+				,'function': cfg.name
 			};
 		}
 		ERROR.add(e)
 		switch (cfg.errors) {
 			case 'alert':
-				if(msg) alert(sourceAppName + ":\r\n" + msg)
+					if(msg) alert(cfg.name + ":\r\n" + msg)
 					else ERROR.show(e)
 				break;
 			case 'throw':
-				if(msg) throw new Error(sourceAppName + ":\r\n" + msg)
+					if(msg) throw new Error(cfg.name + ":\r\n" + msg)
 					else throw e
+				break;
+			case 'ignore':
 				break;
 		}
 	}
+
+	/**
+	 * Вытаскивает корневой узел
+	 * @param names
+	 * @returns {*}
+	 * @private
+	 */
 	function _borrowRootName(names){
-		return names ? ( _isA(names) ? names.shift() : names ) : 'root';
+		return names ? ( isArray(names) ? names.shift() : names ) : 'root';
 	}
+
 	var _ajax= null;
-	// ===============================
+
+	/**
+	 * клонирует источник
+	 * @param {Array|Object} o source for clone
+	 * @returns {Array|Object}
+	 * @private
+	 */
+	function _copy(o){
+		if (typeof o != 'object' || o === null) return o;
+		var r = clone((isArray(o)? [] : {}) ,o);
+		return r;
+	}
+	//endregion
 	
 	
-	var lib = function(){Constructor.call(this)};
+	var lib = function(){
+		//region PRIVATE methods n properties
+		//...
+		//endregion
+
+		Constructor.call(this)
+	};
 	lib.prototype = {
 		/**
 		 * Ajax запрос формирует
 		 * @param {Object} cfg конфиг запроса
+		 * @todo: вынести в **private|protected**
 		 */
 		ajax: function(cfg){
 			if (_ajax === null) {
@@ -210,7 +265,7 @@
 		},
 
 		/**
-		 * The following two pieces of code are taken from http://www.alistapart.com/articles/crossbrowserscripting
+		 * The following two pieces of code are [taken from](http://www.alistapart.com/articles/crossbrowserscripting)
 		 * @const nodeTypes
 		 * @property {Object} nodeTypes
 		 * @static
@@ -232,10 +287,10 @@
 		},
 
 		/**
-		 * ...
+		 * Import Node
 		 * @param document
 		 * @param node
-		 * @param allChildren
+		 * @param {Boolean} allChildren recursively get all of the child nodes
 		 * @returns {Element|Text}
 		 * @method importNode
 		 * @member JSXML
@@ -274,10 +329,12 @@
 		 * @returns {XMLDocument}
 		 */
 		newDoc: function(node){
+			var self = this;
+
 			function _createElement(){
 				var res;
 				var xml = document.createElement('xml');
-				xml.src = '<?xml version="1.0" encoding="UTF-8"?>';
+				xml.src = self._xmlHeader;
 				document.body.appendChild(xml);
 				res = xml.XMLDocument;
 				document.body.removeChild(xml);
@@ -285,6 +342,8 @@
 			}
 			function _createActiveXObject(){
 				var progIDs = [
+					"Msxml2.FreeThreadedDOMDocument.3.0",
+					"Msxml2.FreeThreadedDOMDocument",
 					"Microsoft.XMLDOM",
 					"Msxml2.DOMDocument.6.0",
 					"Msxml2.DOMDocument.5.0",
@@ -304,7 +363,7 @@
 			var d=null;
 			// create IE xml DOM without ActiveX, submitted by alfalabs.net@gmail.com
 			try{
-				if(typeof(ActiveXObject)!='undefined' && ActiveXObject instanceof Object){
+				if(typeof(ActiveXObject)!='undefined' || ActiveXObject instanceof Object){
 					d = _createActiveXObject();
 					if(d){
 						d.async = false;
@@ -313,26 +372,26 @@
 				}else{
 					d= _createElement();
 				}
-			}catch(e){ ERROR.show(e) }
+			}catch(e){ _throw(null,e) }
 			if(!d){
 				try{
 					d= _createElement();
-				}catch(e){ ERROR.show(e) }
+				}catch(e){ _throw(null,e) }
 			}
 			if(!d){
 				try{
 					d = document.implementation.createDocument("", node && !node.tagName ? node : 'test', null);
-				}catch(e){ ERROR.show(e) }
+				}catch(e){ _throw(null,e) }
 			}
 			if(!d){
 				try {
 					d = new DOMParser();
-					//d = d.parseFromString('','text/xml');
+					//TODO: d = d.parseFromString('','text/xml');
 					// text/xml
 					// application/xml
 					// application/xhtml+xml
 					// image/svg+xml
-				}catch(e){ ERROR.show(e) }
+				}catch(e){ _throw(null,e) }
 			}
 			if(!d){
 				_throw(this.lng.broken);
@@ -341,7 +400,7 @@
 
 			if(node){
 				try{
-					if (typeof(ActiveXObject)!='undefined' && ActiveXObject instanceof Object) {
+					if (typeof(ActiveXObject)!='undefined' || ActiveXObject instanceof Object) {
 						if (node.tagName) {
 							d.appendChild(this.importNode(d, node, true));
 						} else {
@@ -352,7 +411,7 @@
 							d.replaceChild(d.importNode(node, true), d.documentElement);
 						}
 					}
-				}catch(e){ ERROR.show(e) }
+				}catch(e){ _throw(null,e) }
 			}
 			return d;
 		}
@@ -364,7 +423,7 @@
 		 */
 		,copy: function(obj){
 			return this.fromString(this.stringify(obj));
-		},
+		}
 
 		/**
 		 * создает XMLDocument из строки ИЛИ объекта (XMLDocument)
@@ -373,7 +432,7 @@
 		 * @member JSXML
 		 * @returns {XMLDocument}
 		 */
-		fromStringOrObject: function(src) {
+		,fromStringOrObject: function(src) {
 			return this.fromObject(src) || this.fromString(src);
 		}
 		/**
@@ -446,11 +505,10 @@
 			}
 			return el;
 		}
-
 		/**
-		 * подгрузка XML из файла (может ajax)
+		 * загрузка XML из файла (or Ajax)
 		 * @method fromFile
-		 * @param file Имя файла с путем содержащего XML
+		 * @param {String} file Имя и путь к файлу XML
 		 * @param callback
 		 * @param [scope]
 		 * @member JSXML
@@ -493,8 +551,7 @@
 					}
 				})
 			}
-		},
-
+		}
 		/**
 		 * загрузка XML с сервера или из переданной строки или из переданного XMLDocument
 		 * @method load
@@ -503,38 +560,59 @@
 		 * @param [scope]
 		 * @member JSXML
 		 */
-		load: function(source, callback, scope) {
+		,load: function(source, callback, scope) {
 			var o = this.fromStringOrObject(source);
 			if (o) callback.call(scope ? scope : o, o);
 			else this.fromFile(source, callback, scope);
-		},
+		}
 
 		/**
 		 * XML to String
 		 * @param source
 		 * @param {Boolean} [xmlHeaderNeeded=true] показывать заголовок xml
+		 * @param {boolean} [sanity=false] exec sanitization (html entities)
 		 * @method stringify
 		 * @member JSXML
-		 * @returns {*}
+		 * @returns {String}
 		 */
-		stringify: function(source, xmlHeaderNeeded){
+		,stringify: function(source, xmlHeaderNeeded ,sanity){
 			xmlHeaderNeeded = !(xmlHeaderNeeded === false);
-			var xml = typeof(source) == 'string' ? source : (source.xml ? source.xml : new XMLSerializer().serializeToString(source)),
+
+			var xml = typeof(source) == 'string'
+							? source
+							: (
+										source.xml
+												? source.xml
+												: (
+														typeof(GetXmlStringFromXmlDoc) != 'undefined'
+																? GetXmlStringFromXmlDoc(source)
+																: new XMLSerializer().serializeToString(source))),
 					xmlHeaderPresent = /^<\?xml/.test(xml);
-			if (xmlHeaderNeeded && /="UTF\-16"\?/.test(xml)) xml = xml.replace(/="UTF\-16"\?/, '="UTF-8"?');
-			if (xmlHeaderNeeded && !xmlHeaderPresent) return this._xmlHeader + xml;
-			if (!xmlHeaderNeeded && xmlHeaderPresent) return xml.replace(/^<\?xml[^<]+/, '');
+			if (xml.indexOf("<transformiix:result") > -1) {
+				// extract contents of transform iix node if it is present
+				xml = xml.substring(xml.indexOf(">") + 1, xml.lastIndexOf("<"));
+			}
+			if (xmlHeaderNeeded && /="UTF\-16"\?/.test(xml)) xml = xml.replace(/="UTF\-16"\?/, '="{0}"?'.format(cfg.encoding));
+			if (xmlHeaderNeeded && !xmlHeaderPresent) xml = this._xmlHeader+'\r\n' + xml;
+			if (!xmlHeaderNeeded && xmlHeaderPresent) xml = xml.replace(/^<\?xml[^<]+/, '');
+			if(sanity){ xml = htmlentities(xml); }
 			return xml;
 		}
-
+		/**
+		 * Object or Array transform to DOM
+		 * @param o
+		 * @param names
+		 * @param parentNode
+		 * @returns {Node}
+		 */
 		,toDom: function(o, names, parentNode){
 			var rootName = _borrowRootName(names);
 			if (parentNode) parentNode = parentNode.appendChild(parentNode.ownerDocument.createElement(rootName));
 			else parentNode = this.newDoc(rootName).documentElement;
 			var t;
-			if (_isA(o)) {
+			if (isArray(o)) {
 				for (var i = 0; i < o.length; i++ )
-					this.toDom(o[i], this._copy(names), parentNode);
+					this.toDom(o[i], _copy(names), parentNode);
 			} else {
 				for (var i in o) {
 					t = typeof o[i];
@@ -551,7 +629,7 @@
 							break;
 						case 'object':
 							if (o[i] !== null)
-								this.toDom(o[i], _isA(names) ? [i].concat(names) : i, parentNode);
+								this.toDom(o[i], isArray(names) ? [i].concat(names) : i, parentNode);
 							break;
 						default:
 							_throw(String.format(this.lng.unsuitableType, i ,t));
@@ -561,44 +639,105 @@
 				}
 			}
 			return parentNode.ownerDocument.documentElement == parentNode ? parentNode.ownerDocument : parentNode;
-		},
+		}
 
-		trans: function(xmlSrc, xslSrc, callback, nativeResult, doc){
+		/**
+		 * transform remote XML after load on client<br/>
+		 * This is first step transformation. Second step auto execute after load XML.
+		 * @param xmlSrc
+		 * @param xslSrc
+		 * @param callback
+		 * @param nativeResult
+		 * @param doc
+		 * @member JSXML
+		 */
+		,trans: function(xmlSrc, xslSrc, callback, nativeResult, doc){
 			var $this = this;
 			this.load(xmlSrc, function(xml){
 				$this._trans2(xml, xslSrc, callback, nativeResult, doc);
 			});
-		},
-
-		transReady: function(xmlSrc, xslSrc, nativeResult, doc){
+		}
+		/**
+		 * transform XML from string\Object (without load from server)
+		 * @param xmlSrc
+		 * @param xslSrc
+		 * @param nativeResult
+		 * @param doc
+		 * @returns {String|Node}
+		 * @member JSXML
+		 */
+		,transReady: function(xmlSrc, xslSrc, nativeResult, doc) {
 			var xmlSrc = this.fromStringOrObject(xmlSrc),
+					_xslSrc = xslSrc,
 					xslSrc = this.fromStringOrObject(xslSrc),
 					r;
 			if (!xmlSrc || !xslSrc) return false;
+
 			try {
-				if (ActiveXObject instanceof Object) {
-					r = xmlSrc.transformNode(xslSrc);
-					r = this.fromStringOrObject(r) || r;
-				} else {
+				// 1. Use type XSLTProcessor, if browser (FF, Safari, Chrome etc) supports it
+				if (typeof (XSLTProcessor) != "undefined"
+						&& document.implementation && document.implementation.createDocument) {
 					var processor = new XSLTProcessor();
 					processor.importStylesheet(xslSrc);
-					r = doc ? processor.transformToDocument(xmlSrc) : processor.transformToFragment(xmlSrc, document);
+					r = doc
+							? processor.transformToDocument(xmlSrc)
+							: processor.transformToFragment(xmlSrc, document);
+				} else
+				// 2. Use function [transformNode] on the XmlDocument, if browser (IE6, IE7, IE8) supports it
+				if (typeof (xmlSrc.transformNode) != "undefined") {
+					r = xmlSrc.transformNode(xslSrc);
+					r = this.fromStringOrObject(r) || r;
+				} else
+				// 3. Use function transform on the XsltProcessor used for IE9 (which doesn't support [transformNode] any more)
+				if (typeof(ActiveXObject) != 'undefined' || ActiveXObject instanceof Object) {
+					var xslt = new ActiveXObject("Msxml2.XSLTemplate");
+					var xslDoc = new ActiveXObject("Msxml2.FreeThreadedDOMDocument");
+					xslDoc.loadXML(_xslSrc);
+					xslt.stylesheet = xslDoc;
+					var xslProc = xslt.createProcessor();
+					xslProc.input = xmlSrc;
+					xslProc.transform();
+					r = xslProc.output;
 				}
 			} catch (e) {
 				_throw(this.lng.brokenxslt);
 				return false;
 			}
-			return nativeResult ? r : this.stringify(r, false);
-		},
+			return (nativeResult || !r) ? r : this.stringify(r, false);
+		}
+		/**
+		 *
+		 * @param config
+		 * @returns {string[]}
+		 * @member JSXML
+		 */
+		,getXslWrap: function(config){
+			config = config || {};
 
-		getXslWrap: function(cfg){
-			cfg = cfg || {};
-			cfg.indent = cfg.indent || 'yes';
-			cfg.method = cfg.method || 'html';
-			return ['<?xml version="1.0" encoding="UTF-8"?><xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"><xsl:output encoding="UTF-8" indent="' + cfg.indent + '" method="' + cfg.method + '" />', '</xsl:stylesheet>'];
-		},
+			return [
+				(this._xmlHeader
+						+'<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"><xsl:output encoding="'
+						+ cfg.encoding
+						+'" indent="'
+						+ (config.indent || 'yes')
+						+ '" method="'
+						+ (config.method || 'html')
+						+ '" />'),
+				'</xsl:stylesheet>'
+			];
+		}
 
-		_trans2: function(xml, xslSrc, callback, nativeResult, doc){
+		/**
+		 * second step transformation -> load XSLT n execute transform XML
+		 * @param xml
+		 * @param xslSrc
+		 * @param callback
+		 * @param nativeResult
+		 * @param doc
+		 * @private
+		 * @member JSXML
+		 */
+		,_trans2: function(xml, xslSrc, callback, nativeResult, doc){
 			this.load(xslSrc, function(xsl){
 				var scope;
 				if (callback && typeof callback.length == "number" && typeof callback.splice == "function") {
@@ -609,22 +748,6 @@
 			}, this);
 		},
 
-		//TODO: добавить задание/смены кодировки XML
-		_xmlHeader: '<?xml version="1.0" encoding="UTF-8"?>\r\n',
-		_cache: {},
-		_copy: function(o){
-			if (typeof o != 'object' || o === null) return o;
-			var r;
-			if (_isA(o)) {
-				r = [];
-				for (var i = 0; i < o.length; i++) r.push(o[i]);
-			} else {
-				r = {};
-				for (var i in o) r[i] = o[i]
-			}
-			return r;
-		},
-		_cache_loading: {},
 
 		/**
 		 * @property {Object} lng сообщения/тексты, которые могут быть переведены под конкретный язык
@@ -639,12 +762,19 @@
 			,'Unable to set attribute named "{0}"; {1}': 'Unable to set attribute named "{0}"; {1}'
 		}
 
+		/**
+		 * @property {String} _xmlHeader XML Header with encoding
+		 * @private
+		 */
+		,_xmlHeader : '<?xml version="1.0" encoding="{0}"?>'.format(cfg.encoding)
+		,_cache : {}
+		,_cache_loading : {}
 
 		/**
 		 * @static
 		 * @member JSXML
 		 */
-		,version : '0.3.2'
+		,version : '0.4.0'
 		/**
 		 * @static
 		 * @member JSXML
@@ -652,8 +782,8 @@
 		 */
 		,versionDetail : {
 			major : 0
-			,minor : 3
-			,patch : 2
+			,minor : 4
+			,patch : 0
 		}
 	};
 

@@ -1,7 +1,7 @@
 {
     "--": "jsxml.js",
     "--title": "JSXML",
-    "--output": "docs-js",
+    "--output": "docs",
     "--ignore-global":true,
     "--warnings": [
         "-nodoc",
@@ -9,7 +9,7 @@
         "-type_name",
         "-html"
     ],
-    "--images": "docs-js/img",
+    "--images": "docs/img",
     "--builtin-classes": true,
     "--seo": true
 }
