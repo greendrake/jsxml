@@ -34,7 +34,8 @@
 
 /**
  * для работы с XML,XSLT + трансформация в результирующий DOM<br/>
- * JavaScript XML/XSLT library. [Original project](http://jsxml.net/)<br/>
+ * JavaScript XML/XSLT library.<br/>
+ * [Original project](http://jsxml.net/)<br/>
  * @class JSXML
  * @singleton
  * **Feedback**<br/> Any comments, bug reports, suggestions — please welcome: [author](mailto:eugene@greendrake.info?subject=JSXML), [editor](mailto:cybermerlin@ya.ru?subject=JSXML).
@@ -668,7 +669,7 @@
 		 */
 		,transReady: function(xmlSrc, xslSrc, nativeResult, doc) {
 			var xmlSrc = this.fromStringOrObject(xmlSrc),
-					_xslSrc = xslSrc,
+					_xslSrc = typeof xslSrc == 'string'? xslSrc : this.stringify(xslSrc),
 					xslSrc = this.fromStringOrObject(xslSrc),
 					r;
 			if (!xmlSrc || !xslSrc) return false;
@@ -774,7 +775,7 @@
 		 * @static
 		 * @member JSXML
 		 */
-		,version : '0.4.0'
+		,version : '0.4.1'
 		/**
 		 * @static
 		 * @member JSXML
@@ -783,7 +784,7 @@
 		,versionDetail : {
 			major : 0
 			,minor : 4
-			,patch : 0
+			,patch : 1
 		}
 	};
 

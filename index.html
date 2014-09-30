@@ -32,14 +32,17 @@
 
 						child.setAttribute('foo' ,'bar')
 						dom.documentElement.appendChild(child)
-						alert(JSXML.stringify(dom))
+						alert("stringify\r\n"+ JSXML.stringify(dom))
 
 						JSXML.load('xml.xml' ,function(dom){
-							alert(JSXML.stringify(dom))
+							alert("load\r\n"+ JSXML.stringify(dom))
 						});
 						
 						var resultString = JSXML.transReady(xml, xsl);
-						alert(resultString)
+						alert("transReady\r\n" + resultString)
+						JSXML.trans('xml.xml', 'xsl.xsl', function(result){
+							alert("trans\r\n"+ result)
+						})
 					}
         </script>
     </head>
