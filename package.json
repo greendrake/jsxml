@@ -1,0 +1,16 @@
+{
+  "name": "jsxml",
+  "version": "0.4.1",
+  "description": "JavaScript XML/XSLT library",
+  "main": "jsxml.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DrakeES/jsxml"
+  },
+  "author": "Eugene DrakeES <eugene@drakees.com>",
+  "license": "New BSD license",
+  "bugs": {
+    "url": "https://github.com/DrakeES/jsxml/issues"
+  },
+  "homepage": "http://jsxml.net/"
+}
