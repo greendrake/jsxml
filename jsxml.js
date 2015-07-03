@@ -584,10 +584,7 @@
 							: (
 										source.xml
 												? source.xml
-												: (
-														typeof(GetXmlStringFromXmlDoc) != 'undefined'
-																? GetXmlStringFromXmlDoc(source)
-																: new XMLSerializer().serializeToString(source))),
+												: new XMLSerializer().serializeToString(source)),
 					xmlHeaderPresent = /^<\?xml/.test(xml);
 			if (xml.indexOf("<transformiix:result") > -1) {
 				// extract contents of transform iix node if it is present
@@ -775,7 +772,7 @@
 		 * @static
 		 * @member JSXML
 		 */
-		,version : '0.4.1'
+		,version : '0.4.2'
 		/**
 		 * @static
 		 * @member JSXML
@@ -784,7 +781,7 @@
 		,versionDetail : {
 			major : 0
 			,minor : 4
-			,patch : 1
+			,patch : 2
 		}
 	};
 
