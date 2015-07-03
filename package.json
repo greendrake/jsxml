@@ -1,6 +1,6 @@
 {
   "name": "jsxml",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "JavaScript XML/XSLT library",
   "main": "jsxml.js",
   "repository": {
